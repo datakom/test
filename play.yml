@@ -2,25 +2,25 @@
 # TEST PLAYBOOK #
 #################
 ---
-
 - hosts: "all" # применяем команды ко всем
   become: true
   tasks:
-  - name: "Add Ansible inventory mappings to /etc/hosts"
+  - name: "Adding Ansible inventory mappings to /etc/hosts"
     blockinfile:
       path: /etc/hosts
       block: |
         {% for host in groups['all'] %}
         {{ hostvars[host].ansible_host }} {{ host }}
         {% endfor %}
+
 - hosts: "frontend" # применяем команды к frontend
   become: true
   tasks:
-   # Отключаем SELinux
+ # Отключаем SELinux
   - name: "Disabling SELinux"
     selinux:
       state: disabled
-   # Перегружаем хост и ждем
+ # Перегружаем хост и ждем
   - name: "Reboot host and wait for it to restart"
     reboot:
       msg: "Rebooting"
@@ -29,27 +29,27 @@
       pre_reboot_delay: 0
       post_reboot_delay: 30
       test_command: whoami
-   # Отлючаем firewalld
-  - name: "Disable Firewall"
+ # Отлючаем firewalld
+  - name: "Disabling Firewall"
     service:
       name: firewalld
       state: stopped
       enabled: false
-  # Устанавливаем nginx
-  - name: "Install nginx"
+ # Устанавливаем nginx
+  - name: "Installing nginx"
     yum:
       name: "nginx"
       state: "latest"
       update_cache: true
  # Устанавливаем conf
-  - name: "Add nginx conf"
+  - name: "Add nginx config"
     copy:
       src: "conf/nginx.conf"
       dest: "/etc/nginx/nginx.conf"
       owner: "root"
       group: "root"
       mode: u=wrx,g=rx,o=r,+x
-  # Перегружаем с новым конфигом
+ # Перегружаем с новым конфигом
   - name: "Restart nginx"
     service:
       name: nginx
@@ -58,13 +58,13 @@
 - hosts: "backend" # применяем команды к backend
   become: true
   tasks:
-  # Устанавливаем netdata
-  - name: "Install netdata"
+ # Устанавливаем netdata
+  - name: "Installing netdata"
     apt:
       name: "netdata"
       state: "latest"
       update_cache: true
-  # Устанавливаем conf
+  # Устанавливаем config
   - name: "Add config"
     copy:
       src: "conf/netdata.conf"
@@ -73,7 +73,7 @@
       group: "root"
       mode: u=wrx,g=rx,o=r,+x
   # Перегружаем netdata с новым конфигом
-  - name: "Restart netdata"
+  - name: "Restarting netdata"
     service:
       name: netdata
       state: restarted
