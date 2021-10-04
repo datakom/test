@@ -1,0 +1,79 @@
+#################
+# TEST PLAYBOOK #
+#################
+---
+
+- hosts: "all" # применяем команды ко всем
+  become: true
+  tasks:
+  - name: "Add Ansible inventory mappings to /etc/hosts"
+    blockinfile:
+      path: /etc/hosts
+      block: |
+        {% for host in groups['all'] %}
+        {{ hostvars[host].ansible_host }} {{ host }}
+        {% endfor %}
+- hosts: "frontend" # применяем команды к frontend
+  become: true
+  tasks:
+   # Отключаем SELinux
+  - name: "Disabling SELinux"
+    selinux:
+      state: disabled
+   # Перегружаем хост и ждем
+  - name: "Reboot host and wait for it to restart"
+    reboot:
+      msg: "Rebooting"
+      connect_timeout: 5
+      reboot_timeout: 600
+      pre_reboot_delay: 0
+      post_reboot_delay: 30
+      test_command: whoami
+   # Отлючаем firewalld
+  - name: "Disable Firewall"
+    service:
+      name: firewalld
+      state: stopped
+      enabled: false
+  # Устанавливаем nginx
+  - name: "Install nginx"
+    yum:
+      name: "nginx"
+      state: "latest"
+      update_cache: true
+ # Устанавливаем conf
+  - name: "Add nginx conf"
+    copy:
+      src: "conf/nginx.conf"
+      dest: "/etc/nginx/nginx.conf"
+      owner: "root"
+      group: "root"
+      mode: u=wrx,g=rx,o=r,+x
+  # Перегружаем с новым конфигом
+  - name: "Restart nginx"
+    service:
+      name: nginx
+      state: restarted
+
+- hosts: "backend" # применяем команды к backend
+  become: true
+  tasks:
+  # Устанавливаем netdata
+  - name: "Install netdata"
+    apt:
+      name: "netdata"
+      state: "latest"
+      update_cache: true
+  # Устанавливаем conf
+  - name: "Add config"
+    copy:
+      src: "conf/netdata.conf"
+      dest: "/etc/netdata/netdata.conf"
+      owner: "root"
+      group: "root"
+      mode: u=wrx,g=rx,o=r,+x
+  # Перегружаем netdata с новым конфигом
+  - name: "Restart netdata"
+    service:
+      name: netdata
+      state: restarted
